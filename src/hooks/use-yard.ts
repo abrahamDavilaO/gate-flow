@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import type { YardSnapshot } from "@/lib/types";
 
-export function useYard(intervalMs = 4000) {
-  const [yard, setYard] = useState<YardSnapshot | null>(null);
+export function useYard(intervalMs = 4000, initial: YardSnapshot | null = null) {
+  const [yard, setYard] = useState<YardSnapshot | null>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initial == null);
 
   const reload = useCallback(async () => {
     try {
@@ -21,14 +21,19 @@ export function useYard(intervalMs = 4000) {
     }
   }, []);
 
+  const waitForFirstPoll = initial != null;
+
   useEffect(() => {
     const id = window.setInterval(() => void reload(), intervalMs);
-    const start = window.setTimeout(() => void reload(), 0);
+    const start = window.setTimeout(
+      () => void reload(),
+      waitForFirstPoll ? intervalMs : 0,
+    );
     return () => {
       window.clearInterval(id);
       window.clearTimeout(start);
     };
-  }, [reload, intervalMs]);
+  }, [reload, intervalMs, waitForFirstPoll]);
 
   return { yard, error, loading, reload };
 }

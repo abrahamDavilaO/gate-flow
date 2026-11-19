@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { connection } from "next/server";
 import { FACILITY, SLA_MINUTES } from "./constants";
 import { sql } from "./db";
 import { docsOk, minutesBetween, normalizePlate } from "./format";
@@ -110,6 +111,7 @@ function mapAppointment(row: AppointmentRow): AppointmentSummary {
 }
 
 async function ensureReady() {
+  await connection();
   ready ??= seedIfEmpty().catch((error: unknown) => {
     ready = undefined;
     throw error;

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { displayPlate, formatDateTime, operationLabel } from "@/lib/format";
+import type { YardSnapshot } from "@/lib/types";
 import { useYard } from "@/hooks/use-yard";
 
-export function PortalHome() {
-  const { yard, error, loading } = useYard(5000);
+export function PortalHome({ initial }: { initial: YardSnapshot }) {
+  const { yard, error, loading } = useYard(5000, initial);
   const appointments = yard?.appointments ?? [];
 
   return (

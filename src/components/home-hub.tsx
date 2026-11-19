@@ -7,9 +7,10 @@ import { displayPlate, formatDuration } from "@/lib/format";
 import { useYard } from "@/hooks/use-yard";
 import { Dwell } from "@/components/dwell";
 import { FACILITY } from "@/lib/constants";
+import type { YardSnapshot } from "@/lib/types";
 
-export function HomeHub() {
-  const { yard } = useYard(5000);
+export function HomeHub({ initial }: { initial: YardSnapshot }) {
+  const { yard } = useYard(5000, initial);
   const demo = yard?.appointments.find((a) => a.token === "PT-NORTE1");
 
   return (
@@ -114,7 +115,7 @@ export function HomeHub() {
             </Button>
           </div>
         </div>
-        <LiveUnits />
+        <LiveUnits yard={yard} />
       </section>
     </div>
   );
@@ -167,8 +168,7 @@ function RoleCard({
   );
 }
 
-function LiveUnits() {
-  const { yard } = useYard(4000);
+function LiveUnits({ yard }: { yard: YardSnapshot | null }) {
   const active = (yard?.appointments ?? []).filter((a) =>
     ["en_sitio", "en_anden", "en_operacion"].includes(a.status),
   );

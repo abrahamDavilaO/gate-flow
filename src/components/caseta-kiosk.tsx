@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/client";
 import { displayPlate, formatDateTime, operationLabel } from "@/lib/format";
-import type { Dock, GateLookup } from "@/lib/types";
+import type { Dock, GateLookup, YardSnapshot } from "@/lib/types";
 import { useYard } from "@/hooks/use-yard";
 
-export function CasetaKiosk() {
-  const { yard, reload } = useYard(5000);
+export function CasetaKiosk({ initial }: { initial: YardSnapshot }) {
+  const { yard, reload } = useYard(5000, initial);
   const [query, setQuery] = useState("");
   const [scan, setScan] = useState(false);
   const [lookup, setLookup] = useState<GateLookup | null>(null);

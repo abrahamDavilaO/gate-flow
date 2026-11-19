@@ -16,11 +16,11 @@ import {
   formatTime,
   operationLabel,
 } from "@/lib/format";
-import type { AppointmentSummary } from "@/lib/types";
+import type { AppointmentSummary, YardSnapshot } from "@/lib/types";
 import { useYard } from "@/hooks/use-yard";
 
-export function YardBoard() {
-  const { yard, error, loading, reload } = useYard(3000);
+export function YardBoard({ initial }: { initial: YardSnapshot }) {
+  const { yard, error, loading, reload } = useYard(3000, initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"en_patio" | "todas">("en_patio");
 

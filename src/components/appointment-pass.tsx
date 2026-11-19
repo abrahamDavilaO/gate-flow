@@ -9,9 +9,17 @@ import { api } from "@/lib/client";
 import { displayPlate, formatDateTime } from "@/lib/format";
 import type { AppointmentSummary } from "@/lib/types";
 
-export function AppointmentPass({ id }: { id: string }) {
-  const [appointment, setAppointment] = useState<AppointmentSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function AppointmentPass({
+  id,
+  initial,
+}: {
+  id: string;
+  initial: AppointmentSummary | null;
+}) {
+  const [appointment, setAppointment] = useState<AppointmentSummary | null>(initial);
+  const [error, setError] = useState<string | null>(
+    initial ? null : "Cita no encontrada.",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -20,20 +28,24 @@ export function AppointmentPass({ id }: { id: string }) {
         const data = await api<{ appointment: AppointmentSummary }>(
           `/api/appointments/${id}`,
         );
-        if (!cancelled) setAppointment(data.appointment);
-      } catch (err) {
         if (!cancelled) {
+          setAppointment(data.appointment);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled && !initial) {
           setError(err instanceof Error ? err.message : "Cita no encontrada.");
         }
       }
     }
-    void load();
     const timer = window.setInterval(() => void load(), 4000);
+    const start = window.setTimeout(() => void load(), initial ? 4000 : 0);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      window.clearTimeout(start);
     };
-  }, [id]);
+  }, [id, initial]);
 
   if (error) {
     return (

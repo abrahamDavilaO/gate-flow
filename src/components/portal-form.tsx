@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/client";
 import type { AppointmentSummary, Operation } from "@/lib/types";
 
@@ -27,6 +26,9 @@ const empty = {
   docsCartaPorte: false,
 };
 
+const inputClass =
+  "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
 function defaultWindow() {
   const d = new Date(Date.now() + 90 * 60_000);
   d.setSeconds(0, 0);
@@ -43,7 +45,7 @@ export function PortalForm() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     try {
@@ -68,55 +70,72 @@ export function PortalForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-6" noValidate={false}>
       <section className="grid gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2">
         <h2 className="font-heading sm:col-span-2 text-base">Unidad y chofer</h2>
-        <Field label="Transportista">
-          <Input
+        <Field label="Transportista" htmlFor="carrier">
+          <input
+            id="carrier"
+            name="carrier"
             required
+            className={inputClass}
             value={form.carrier}
             onChange={(e) => set("carrier", e.target.value)}
-            placeholder="Transportes Ortega"
+            placeholder="Ej. Transportes Ortega"
           />
         </Field>
-        <Field label="Placa del tracto">
-          <Input
+        <Field label="Placa del tracto" htmlFor="plate">
+          <input
+            id="plate"
+            name="plate"
             required
-            className="plate-type"
+            autoCapitalize="characters"
+            className={`${inputClass} plate-type`}
             value={form.plate}
             onChange={(e) => set("plate", e.target.value.toUpperCase())}
-            placeholder="ABC-45-01"
+            placeholder="Ej. ABC-45-01"
           />
         </Field>
-        <Field label="Placa de caja (opcional)">
-          <Input
-            className="plate-type"
+        <Field label="Placa de caja (opcional)" htmlFor="trailerPlate">
+          <input
+            id="trailerPlate"
+            name="trailerPlate"
+            className={`${inputClass} plate-type`}
             value={form.trailerPlate}
             onChange={(e) => set("trailerPlate", e.target.value.toUpperCase())}
-            placeholder="CJA-8821"
+            placeholder="Ej. CJA-8821"
           />
         </Field>
-        <Field label="Nombre del chofer">
-          <Input
+        <Field label="Nombre del chofer" htmlFor="driverName">
+          <input
+            id="driverName"
+            name="driverName"
             required
+            className={inputClass}
             value={form.driverName}
             onChange={(e) => set("driverName", e.target.value)}
-            placeholder="Luis Hernández Mora"
+            placeholder="Ej. Luis Hernández Mora"
           />
         </Field>
-        <Field label="Licencia">
-          <Input
+        <Field label="Licencia" htmlFor="driverLicense">
+          <input
+            id="driverLicense"
+            name="driverLicense"
             required
+            className={inputClass}
             value={form.driverLicense}
             onChange={(e) => set("driverLicense", e.target.value)}
-            placeholder="QRO-184392"
+            placeholder="Ej. QRO-184392"
           />
         </Field>
-        <Field label="Celular">
-          <Input
+        <Field label="Celular" htmlFor="phone">
+          <input
+            id="phone"
+            name="phone"
+            className={inputClass}
             value={form.phone}
             onChange={(e) => set("phone", e.target.value)}
-            placeholder="442 155 0198"
+            placeholder="Ej. 442 155 0198"
           />
         </Field>
       </section>
@@ -137,26 +156,35 @@ export function PortalForm() {
             ))}
           </div>
         </Field>
-        <Field label="Ventana de cita">
-          <Input
+        <Field label="Ventana de cita" htmlFor="scheduledAt">
+          <input
+            id="scheduledAt"
+            name="scheduledAt"
             required
             type="datetime-local"
+            className={inputClass}
             value={form.scheduledAt}
             onChange={(e) => set("scheduledAt", e.target.value)}
           />
         </Field>
-        <Field label="Pedido / referencia">
-          <Input
+        <Field label="Pedido / referencia" htmlFor="referenceCode">
+          <input
+            id="referenceCode"
+            name="referenceCode"
+            className={inputClass}
             value={form.referenceCode}
             onChange={(e) => set("referenceCode", e.target.value)}
-            placeholder="OC-88421"
+            placeholder="Ej. OC-88421"
           />
         </Field>
-        <Field label="Carga">
-          <Input
+        <Field label="Carga" htmlFor="cargo">
+          <input
+            id="cargo"
+            name="cargo"
+            className={inputClass}
             value={form.cargo}
             onChange={(e) => set("cargo", e.target.value)}
-            placeholder="18 tarimas de bebidas"
+            placeholder="Ej. 18 tarimas de bebidas"
           />
         </Field>
       </section>
@@ -200,14 +228,18 @@ export function PortalForm() {
 
 function Field({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="grid gap-1.5 text-sm">
-      <Label className="text-muted-foreground">{label}</Label>
+      <Label htmlFor={htmlFor} className="text-muted-foreground">
+        {label}
+      </Label>
       {children}
     </div>
   );
@@ -223,12 +255,21 @@ function DocCheck({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm">
-      <Checkbox
-        checked={checked}
-        onCheckedChange={(value) => onChange(Boolean(value))}
-      />
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-3 rounded-md bg-muted/40 px-3 py-2 text-left text-sm"
+    >
+      <span
+        className={`grid size-4 place-items-center rounded-[4px] border ${
+          checked
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-input"
+        }`}
+      >
+        {checked ? <CheckIcon className="size-3" /> : null}
+      </span>
       {label}
-    </label>
+    </button>
   );
 }
