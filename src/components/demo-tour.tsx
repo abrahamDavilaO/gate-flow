@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -67,8 +68,33 @@ function measureTarget(target: string | undefined): Rect | null {
   return el ? padRect(el.getBoundingClientRect()) : null;
 }
 
-export function DemoTourProvider({ children }: { children: React.ReactNode }) {
+function pathnameForTour() {
+  if (typeof window === "undefined") return "/";
+  return window.location.pathname;
+}
+
+function DemoTourAutoStart({
+  activeKey,
+  startTour,
+}: {
+  activeKey: TourKey | null;
+  startTour: (key: TourKey) => void;
+}) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    const key = tourKeyFromPath(pathname);
+    if (!key || activeKey) return;
+    const state = readTourState();
+    if (state.seen.includes(key)) return;
+    const timer = window.setTimeout(() => startTour(key), 900);
+    return () => window.clearTimeout(timer);
+  }, [pathname, activeKey, startTour]);
+
+  return null;
+}
+
+export function DemoTourProvider({ children }: { children: React.ReactNode }) {
   const [activeKey, setActiveKey] = useState<TourKey | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
@@ -86,24 +112,12 @@ export function DemoTourProvider({ children }: { children: React.ReactNode }) {
 
   const spotlightRect = step?.target ? targetRect : null;
 
-  const startTour = useCallback(
-    (key?: TourKey) => {
-      const resolved = key ?? tourKeyFromPath(pathname);
-      if (!resolved) return;
-      setActiveKey(resolved);
-      setStepIndex(0);
-    },
-    [pathname],
-  );
-
-  useEffect(() => {
-    const key = tourKeyFromPath(pathname);
-    if (!key || activeKey) return;
-    const state = readTourState();
-    if (state.seen.includes(key)) return;
-    const timer = window.setTimeout(() => startTour(key), 900);
-    return () => window.clearTimeout(timer);
-  }, [pathname, activeKey, startTour]);
+  const startTour = useCallback((key?: TourKey) => {
+    const resolved = key ?? tourKeyFromPath(pathnameForTour());
+    if (!resolved) return;
+    setActiveKey(resolved);
+    setStepIndex(0);
+  }, []);
 
   useEffect(() => {
     if (!isActive || !step) return;
@@ -180,6 +194,9 @@ export function DemoTourProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DemoTourContext.Provider value={contextValue}>
+      <Suspense fallback={null}>
+        <DemoTourAutoStart activeKey={activeKey} startTour={startTour} />
+      </Suspense>
       {children}
       {isActive && step && activeKey ? (
         <div className="fixed inset-0 z-[200]" role="presentation">
