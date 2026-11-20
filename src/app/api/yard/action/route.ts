@@ -2,6 +2,7 @@ import { json, requireViewer } from "@/lib/auth";
 import {
   assignDock,
   completeAndExit,
+  recordDelay,
   resetYard,
   startOperation,
 } from "@/lib/yard";
@@ -9,13 +10,16 @@ import {
 export async function POST(request: Request) {
   const viewer = await requireViewer(request);
   if (viewer instanceof Response) return viewer;
-  let body: { action?: string; id?: string; dockId?: string };
+  let body: {
+    action?: string;
+    id?: string;
+    dockId?: string;
+    supervisor?: string;
+    category?: string;
+    notes?: string;
+  };
   try {
-    body = (await request.json()) as {
-      action?: string;
-      id?: string;
-      dockId?: string;
-    };
+    body = (await request.json()) as typeof body;
   } catch {
     return json({ error: "JSON inválido." }, { status: 400 });
   }
@@ -28,7 +32,9 @@ export async function POST(request: Request) {
       return json({ error: "Falta la unidad." }, { status: 400 });
     }
     if (body.action === "start") {
-      return json({ appointment: await startOperation(body.id) });
+      return json({
+        appointment: await startOperation(body.id, String(body.supervisor ?? "")),
+      });
     }
     if (body.action === "exit") {
       return json({ appointment: await completeAndExit(body.id) });
@@ -38,6 +44,15 @@ export async function POST(request: Request) {
         return json({ error: "Falta el andén." }, { status: 400 });
       }
       return json({ appointment: await assignDock(body.id, body.dockId) });
+    }
+    if (body.action === "incident") {
+      return json({
+        appointment: await recordDelay(
+          body.id,
+          String(body.category ?? ""),
+          body.notes,
+        ),
+      });
     }
     return json({ error: "Acción no reconocida." }, { status: 400 });
   } catch (error) {

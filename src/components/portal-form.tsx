@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "cn";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/client";
 import type { AppointmentSummary, Operation } from "@/lib/types";
@@ -27,7 +28,7 @@ const empty = {
 };
 
 const inputClass =
-  "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-1 text-sm text-foreground shadow-xs transition-colors outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30";
 
 function defaultWindow() {
   const d = new Date(Date.now() + 90 * 60_000);
@@ -71,8 +72,11 @@ export function PortalForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate={false}>
-      <section className="grid gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2">
-        <h2 className="font-heading sm:col-span-2 text-base">Unidad y chofer</h2>
+      <FormSection
+        title="Unidad y chofer"
+        description="Datos que la caseta usa para identificar la unidad."
+        className="grid gap-5 sm:grid-cols-2"
+      >
         <Field label="Transportista" htmlFor="carrier">
           <input
             id="carrier"
@@ -138,21 +142,30 @@ export function PortalForm() {
             placeholder="Ej. 442 155 0198"
           />
         </Field>
-      </section>
+      </FormSection>
 
-      <section className="grid gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2">
-        <h2 className="font-heading sm:col-span-2 text-base">Operación</h2>
+      <FormSection
+        title="Operación"
+        description="Tipo de maniobra y ventana de llegada al CEDIS."
+        className="grid gap-5 sm:grid-cols-2"
+      >
         <Field label="Tipo">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid h-10 grid-cols-2 gap-1 rounded-lg border border-input bg-background p-1">
             {(["descarga", "carga"] as const).map((op) => (
-              <Button
+              <button
                 key={op}
                 type="button"
-                variant={form.operation === op ? "default" : "outline"}
+                aria-pressed={form.operation === op}
                 onClick={() => set("operation", op)}
+                className={cn(
+                  "rounded-md text-sm font-medium transition-colors",
+                  form.operation === op
+                    ? "bg-muted text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 {op === "descarga" ? "Descarga" : "Carga"}
-              </Button>
+              </button>
             ))}
           </div>
         </Field>
@@ -187,14 +200,12 @@ export function PortalForm() {
             placeholder="Ej. 18 tarimas de bebidas"
           />
         </Field>
-      </section>
+      </FormSection>
 
-      <section className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-        <h2 className="font-heading text-base">Documentación previa</h2>
-        <p className="text-sm text-muted-foreground">
-          Confirma que el chofer lleva originales. Si falta un documento, la caseta no
-          abre pluma.
-        </p>
+      <FormSection
+        title="Documentación previa"
+        description="Confirma que el chofer lleva originales. Si falta un documento, la caseta no abre pluma."
+      >
         <div className="grid gap-3 sm:grid-cols-2">
           <DocCheck
             label="Licencia federal vigente"
@@ -217,12 +228,41 @@ export function PortalForm() {
             onChange={(v) => set("docsCartaPorte", v)}
           />
         </div>
-      </section>
+      </FormSection>
 
-      <Button type="submit" size="lg" disabled={busy} className="h-11 w-full sm:w-auto">
-        {busy ? "Registrando…" : "Generar pase QR"}
-      </Button>
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-6 sm:flex-row sm:justify-end">
+        <ButtonLink href="/portal" variant="outline" size="lg" className="h-10 px-4">
+          Cancelar
+        </ButtonLink>
+        <Button type="submit" size="lg" disabled={busy} className="h-10 px-4">
+          {busy ? "Registrando…" : "Generar pase QR"}
+        </Button>
+      </div>
     </form>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  className,
+  children,
+}: {
+  title: string;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="border-b border-border px-5 py-4">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      <div className={cn("p-5", className)}>{children}</div>
+    </section>
   );
 }
 
@@ -236,10 +276,8 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-1.5 text-sm">
-      <Label htmlFor={htmlFor} className="text-muted-foreground">
-        {label}
-      </Label>
+    <div className="grid gap-2 text-sm">
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>
   );
@@ -257,15 +295,23 @@ function DocCheck({
   return (
     <button
       type="button"
+      role="checkbox"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex items-center gap-3 rounded-md bg-muted/40 px-3 py-2 text-left text-sm"
+      className={cn(
+        "flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-sm transition-colors",
+        checked
+          ? "border-primary/50 bg-primary/5"
+          : "border-border bg-background hover:bg-muted/40",
+      )}
     >
       <span
-        className={`grid size-4 place-items-center rounded-[4px] border ${
+        className={cn(
+          "grid size-4 shrink-0 place-items-center rounded-[4px] border",
           checked
             ? "border-primary bg-primary text-primary-foreground"
-            : "border-input"
-        }`}
+            : "border-input",
+        )}
       >
         {checked ? <CheckIcon className="size-3" /> : null}
       </span>

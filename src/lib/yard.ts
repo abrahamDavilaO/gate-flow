@@ -1,7 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { connection } from "next/server";
-import { FACILITY, SLA_MINUTES } from "./constants";
+import { DELAY_CATEGORIES, FACILITY, SLA_MINUTES, SUPERVISORS } from "./constants";
+import { delayCategoryLabel } from "./sla";
 import { sql } from "./db";
+import { seedHistory } from "./history";
 import { docsOk, minutesBetween, normalizePlate } from "./format";
 import type {
   Alert,
@@ -46,6 +48,10 @@ type AppointmentRow = {
   load_started_at: string | null;
   departed_at: string | null;
   rejected_reason: string | null;
+  supervisor: string | null;
+  delay_category: string | null;
+  delay_notes: string | null;
+  delay_recorded_at: string | null;
   dock_label: string | null;
   dock_kind: DockKind | null;
 };
@@ -107,10 +113,16 @@ function mapAppointment(row: AppointmentRow): AppointmentSummary {
     loadStartedAt: row.load_started_at ? iso(row.load_started_at) : null,
     departedAt: row.departed_at ? iso(row.departed_at) : null,
     rejectedReason: row.rejected_reason,
+    supervisor: row.supervisor,
+    delayCategory: row.delay_category,
+    delayNotes: row.delay_notes,
+    delayRecordedAt: row.delay_recorded_at
+      ? iso(row.delay_recorded_at)
+      : null,
   };
 }
 
-async function ensureReady() {
+export async function ensureReady() {
   await connection();
   ready ??= seedIfEmpty().catch((error: unknown) => {
     ready = undefined;
@@ -186,6 +198,7 @@ async function seedYard() {
     arrived?: Date;
     started?: Date;
     departed?: Date;
+    supervisor?: string;
   }> = [
     {
       token: "PT-NORTE1",
@@ -233,6 +246,7 @@ async function seedYard() {
       dock: "A3",
       arrived: minutesAgo(140),
       started: minutesAgo(118),
+      supervisor: SUPERVISORS[0],
     },
     {
       token: token(),
@@ -284,6 +298,7 @@ async function seedYard() {
       dock: "A1",
       arrived: minutesAgo(40),
       started: minutesAgo(35),
+      supervisor: SUPERVISORS[1],
     },
     {
       token: token(),
@@ -302,6 +317,7 @@ async function seedYard() {
       dock: "A5",
       arrived: minutesAgo(22),
       started: minutesAgo(12),
+      supervisor: SUPERVISORS[3],
     },
     {
       token: token(),
@@ -321,6 +337,7 @@ async function seedYard() {
       arrived: minutesAgo(260),
       started: minutesAgo(240),
       departed: minutesAgo(165),
+      supervisor: SUPERVISORS[2],
     },
     {
       token: token(),
@@ -345,8 +362,8 @@ async function seedYard() {
         id, token, carrier, plate, trailer_plate, driver_name, driver_license, phone,
         operation, reference_code, cargo, scheduled_at, docs_license, docs_circulation,
         docs_insurance, docs_carta_porte, status, dock_id, created_at, arrived_at,
-        load_started_at, departed_at
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+        load_started_at, departed_at, supervisor
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
       [
         id,
         sample.token,
@@ -370,6 +387,7 @@ async function seedYard() {
         sample.arrived?.toISOString() ?? null,
         sample.started?.toISOString() ?? null,
         sample.departed?.toISOString() ?? null,
+        sample.supervisor ?? null,
       ],
     );
     if (sample.dock && sample.status !== "completa") {
@@ -393,6 +411,8 @@ async function seedYard() {
       await addEvent(id, "salida", "Unidad liberada", sample.departed);
     }
   }
+
+  await seedHistory();
 
   await sql("insert into app_meta (key, value) values ('sample', 'true')");
 }
@@ -447,7 +467,11 @@ export async function getAppointment(idOrToken: string) {
 
 export async function listAppointments() {
   await ensureReady();
-  const rows = await appointmentQuery("true", []);
+  const rows = await appointmentQuery(
+    `a.status not in ('completa','rechazada','cancelada')
+     or coalesce(a.departed_at, a.scheduled_at) >= now() - interval '24 hours'`,
+    [],
+  );
   return rows
     .map(mapAppointment)
     .sort(
@@ -759,18 +783,29 @@ export async function rejectAppointment(id: string, reason: string) {
   return getAppointment(appointment.id);
 }
 
-export async function startOperation(id: string) {
+export async function startOperation(id: string, supervisor: string) {
   await ensureReady();
+  const name = supervisor.trim().replace(/\s+/g, " ");
+  if (name.length < 3) {
+    throw new Error("Indica el supervisor que atiende la unidad.");
+  }
+  if (name.length > 80) {
+    throw new Error("El nombre del supervisor es demasiado largo.");
+  }
   const appointment = await getAppointment(id);
   if (!appointment) throw new Error("No encontramos la cita.");
   if (!appointment.dockId || appointment.dockKind !== "anden") {
     throw new Error("La unidad tiene que estar en andén para iniciar.");
   }
   await sql(
-    "update appointments set status = 'en_operacion', load_started_at = coalesce(load_started_at, now()) where id = $1",
-    [appointment.id],
+    "update appointments set status = 'en_operacion', load_started_at = coalesce(load_started_at, now()), supervisor = $2 where id = $1",
+    [appointment.id, name],
   );
-  await addEvent(appointment.id, "inicio_operacion", `Inicio en ${appointment.dockLabel}`);
+  await addEvent(
+    appointment.id,
+    "inicio_operacion",
+    `Inicio en ${appointment.dockLabel} · ${name}`,
+  );
   return getAppointment(appointment.id);
 }
 
@@ -802,6 +837,35 @@ export async function assignDock(id: string, dockId: string) {
   ]);
   await addEvent(appointment.id, "reasignacion", `Movido a ${dock.label}`);
   return getAppointment(appointment.id);
+}
+
+export async function recordDelay(
+  id: string,
+  category: string,
+  notes?: string,
+) {
+  await ensureReady();
+  const allowed = DELAY_CATEGORIES.some((c) => c.id === category);
+  if (!allowed) throw new Error("Motivo de incidencia no válido.");
+  const appointment = await getAppointment(id);
+  if (!appointment) throw new Error("No encontramos la cita.");
+  const trimmed = notes?.trim().replace(/\s+/g, " ") ?? "";
+  if (trimmed.length > 500) {
+    throw new Error("Las notas son demasiado largas.");
+  }
+  const label = delayCategoryLabel(category) ?? category;
+  await sql(
+    `update appointments
+     set delay_category = $2, delay_notes = $3, delay_recorded_at = now()
+     where id = $1`,
+    [id, category, trimmed || null],
+  );
+  await addEvent(
+    appointment.id,
+    "incidencia",
+    trimmed ? `${label}: ${trimmed}` : label,
+  );
+  return getAppointment(id);
 }
 
 export async function completeAndExit(id: string) {

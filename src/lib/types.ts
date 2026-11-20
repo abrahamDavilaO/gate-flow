@@ -48,6 +48,10 @@ export type AppointmentSummary = {
   loadStartedAt: string | null;
   departedAt: string | null;
   rejectedReason: string | null;
+  supervisor: string | null;
+  delayCategory: string | null;
+  delayNotes: string | null;
+  delayRecordedAt: string | null;
 };
 
 export type YardEvent = {
@@ -98,6 +102,62 @@ export type GateLookup = {
   freeAndenes: Dock[];
   freeCajones: Dock[];
   reason: string | null;
+};
+
+export type AnalyticsGroup = "day" | "week" | "month" | "year";
+export type AnalyticsOperation = "all" | Operation;
+
+export type AnalyticsMetrics = {
+  operations: number;
+  avgOperation: number | null;
+  avgWait: number | null;
+  avgDwell: number | null;
+  slaPct: number | null;
+};
+
+export type AnalyticsBucket = AnalyticsMetrics & {
+  key: string;
+  label: string;
+};
+
+export type AnalyticsReport = {
+  range: { key: string; label: string; startDay: string; endDay: string };
+  group: AnalyticsGroup;
+  operation: AnalyticsOperation;
+  options: {
+    years: string[];
+    months: { key: string; label: string }[];
+  };
+  summary: AnalyticsMetrics;
+  previous: AnalyticsMetrics | null;
+  series: AnalyticsBucket[];
+  byDock: (AnalyticsMetrics & {
+    id: string;
+    label: string;
+    avgCarga: number | null;
+    avgDescarga: number | null;
+  })[];
+  bySupervisor: (AnalyticsMetrics & { name: string })[];
+  byCarrier: (AnalyticsMetrics & { name: string })[];
+  slowOperations: AnalyticsSlowOperation[];
+  delayBreakdown: { category: string; label: string; count: number }[];
+};
+
+export type AnalyticsSlowOperation = {
+  id: string;
+  plate: string;
+  day: string;
+  dockLabel: string;
+  supervisor: string;
+  carrier: string;
+  operation: Operation;
+  waitMin: number;
+  opMin: number;
+  dwellMin: number;
+  slaTarget: number;
+  breach: "wait" | "operation" | "both";
+  delayCategory: string | null;
+  delayNotes: string | null;
 };
 
 export type CreateAppointmentInput = {

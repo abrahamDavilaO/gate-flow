@@ -1,17 +1,24 @@
 import Link from "next/link";
+import { ChevronLeftIcon } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { PortalForm } from "@/components/portal-form";
 
 export default function NuevaCitaPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div>
-        <Link href="/portal" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Citas
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10 sm:px-6">
+      <div className="space-y-4">
+        <Link
+          href="/portal"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeftIcon className="size-4" />
+          Citas
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Registrar unidad</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Completa placa, chofer y documentos. El QR se genera al guardar.
-        </p>
+        <PageHeader
+          eyebrow="Nueva cita"
+          title="Registrar unidad"
+          description="Completa los datos de la unidad, el chofer y la documentación. El pase QR se genera al guardar."
+        />
       </div>
       <PortalForm />
     </div>

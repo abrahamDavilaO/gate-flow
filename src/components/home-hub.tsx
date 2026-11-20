@@ -1,8 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { QrCodeIcon, ScanLineIcon, LayoutDashboardIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  AlertTriangleIcon,
+  ArrowRightIcon,
+  ArrowUpRightIcon,
+  ChartColumnIcon,
+  LayoutDashboardIcon,
+  QrCodeIcon,
+  ScanLineIcon,
+  TimerIcon,
+  TruckIcon,
+  WarehouseIcon,
+} from "lucide-react";
+import { cn } from "cn";
+import { ButtonLink } from "@/components/ui/button";
 import { displayPlate, formatDuration } from "@/lib/format";
 import { useYard } from "@/hooks/use-yard";
 import { Dwell } from "@/components/dwell";
@@ -12,49 +24,92 @@ import type { YardSnapshot } from "@/lib/types";
 export function HomeHub({ initial }: { initial: YardSnapshot }) {
   const { yard } = useYard(5000, initial);
   const demo = yard?.appointments.find((a) => a.token === "PT-NORTE1");
+  const demoPlate = demo ? displayPlate(demo.plate) : "ABC-45-01";
+
+  const steps = [
+    {
+      title: "Abre el pase de muestra",
+      body: `Transportes Ortega · ${demoPlate}. El QR contiene el token PT-NORTE1.`,
+    },
+    {
+      title: "Valida la entrada en caseta",
+      body: "Escanea el QR o pega el token. La pluma se abre y se asigna andén.",
+    },
+    {
+      title: "Cierra el ciclo en patio",
+      body: "Inicia la carga o descarga y registra la salida de la unidad.",
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
-      <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+    <div className="mx-auto max-w-7xl space-y-16 px-4 py-12 sm:px-6 lg:py-16">
+      <section
+        className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center"
+        data-tour="tour-hero"
+      >
         <div>
-          <p className="text-xs tracking-[0.3em] text-primary uppercase">
-            {FACILITY.site} · {FACILITY.city}
-          </p>
-          <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            El tracto llega con cita. La pluma ya sabe a qué andén mandarlo.
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+            </span>
+            Operación en vivo · {FACILITY.site}, {FACILITY.city}
+          </span>
+          <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+            Control de acceso y patio para centros de distribución
           </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
-            Portal para el transportista, validación en caseta con QR o placa, y
-            tablero de patio que marca entrada, inicio de carga y salida. Si alguien
-            se estaciona de más, el cuello de botella aparece en el momento.
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-muted-foreground">
+            Citas con QR para transportistas, validación en caseta y un tablero de
+            patio en tiempo real que detecta cuellos de botella antes de que afecten
+            la operación.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button render={<Link href="/portal/nueva" />} size="lg">
+          <div className="mt-8 flex flex-wrap gap-3">
+            <ButtonLink href="/portal/nueva" size="lg" className="h-10 px-4">
               Registrar cita
-            </Button>
-            <Button render={<Link href="/caseta" />} size="lg" variant="outline">
+              <ArrowRightIcon data-icon="inline-end" />
+            </ButtonLink>
+            <ButtonLink
+              href="/caseta"
+              size="lg"
+              variant="outline"
+              className="h-10 px-4"
+            >
               Abrir caseta
-            </Button>
+            </ButtonLink>
           </div>
         </div>
-        <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
-            Patio ahora
-          </p>
-          <dl className="mt-3 grid grid-cols-2 gap-3">
-            <Stat label="En sitio" value={yard ? String(yard.kpis.inYard) : "—"} />
+
+        <div
+          className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+          data-tour="tour-kpis"
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+            <p className="text-sm font-medium">Estado del patio</p>
+            <span className="text-xs text-muted-foreground">
+              Actualización automática
+            </span>
+          </div>
+          <dl className="grid grid-cols-2 gap-px bg-border">
             <Stat
-              label="Andenes"
+              icon={<TruckIcon />}
+              label="Unidades en sitio"
+              value={yard ? String(yard.kpis.inYard) : "—"}
+            />
+            <Stat
+              icon={<WarehouseIcon />}
+              label="Andenes ocupados"
               value={
                 yard ? `${yard.kpis.docksBusy}/${yard.kpis.docksTotal}` : "—"
               }
             />
             <Stat
-              label="Estancia"
+              icon={<TimerIcon />}
+              label="Estancia promedio"
               value={yard ? formatDuration(yard.kpis.avgDwellMinutes) : "—"}
             />
             <Stat
-              label="Alertas"
+              icon={<AlertTriangleIcon />}
+              label="Alertas activas"
               value={yard ? String(yard.kpis.overdue) : "—"}
               hot={Boolean(yard && yard.kpis.overdue > 0)}
             />
@@ -62,78 +117,133 @@ export function HomeHub({ initial }: { initial: YardSnapshot }) {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <RoleCard
-          href="/portal"
-          icon={<QrCodeIcon className="size-5" />}
-          kicker="Transportista"
-          title="Portal de citas"
-          body="El chofer registra placa, documentación y ventana. Recibe un QR para no hacer fila en caseta."
-        />
-        <RoleCard
-          href="/caseta"
-          icon={<ScanLineIcon className="size-5" />}
-          kicker="Caseta"
-          title="Validación y pluma"
-          body="Escanea el QR o lee la placa. Si el expediente está completo, se abre la pluma y se asigna andén."
-        />
-        <RoleCard
-          href="/patio"
-          icon={<LayoutDashboardIcon className="size-5" />}
-          kicker="Jefe de patio"
-          title="Tablero en tiempo real"
-          body="Entrada, inicio de carga/descarga y salida. Los andenes lentos se marcan antes de que se arme el tapón."
-        />
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Módulos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Un flujo, cuatro roles. Cada módulo funciona de forma independiente y
+            comparte los mismos datos en tiempo real.
+          </p>
+        </div>
+        <div
+          className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          data-tour="tour-roles"
+        >
+          <RoleCard
+            href="/portal"
+            icon={<QrCodeIcon className="size-5" />}
+            kicker="Transportista"
+            title="Portal de citas"
+            body="El chofer registra placa, documentación y ventana de llegada. Recibe un QR para no hacer fila en caseta."
+          />
+          <RoleCard
+            href="/caseta"
+            icon={<ScanLineIcon className="size-5" />}
+            kicker="Caseta"
+            title="Validación y pluma"
+            body="Escanea el QR o lee la placa. Si el expediente está completo, se abre la pluma y se asigna andén."
+          />
+          <RoleCard
+            href="/patio"
+            icon={<LayoutDashboardIcon className="size-5" />}
+            kicker="Jefe de patio"
+            title="Tablero en tiempo real"
+            body="Entrada, inicio de carga o descarga y salida. Los andenes lentos se marcan antes de que se forme un tapón."
+          />
+          <RoleCard
+            href="/analisis"
+            icon={<ChartColumnIcon className="size-5" />}
+            kicker="Gerencia"
+            title="Análisis operativo"
+            body="Tiempos promedio por andén y supervisor, cumplimiento de SLA y tendencias por día, mes o año."
+          />
+        </div>
       </section>
 
-      <section className="grid gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10 lg:grid-cols-[1fr_1fr]">
-        <div>
-          <h2 className="text-lg font-medium">Prueba el ciclo con datos de muestra</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-            <li>
-              Abre la cita de Transportes Ortega ({demo ? displayPlate(demo.plate) : "ABC-45-01"})
-              y enseña el QR <span className="font-mono text-primary">PT-NORTE1</span>.
-            </li>
-            <li>En caseta, escanea o pega el token. La pluma asigna andén al instante.</li>
-            <li>En el tablero, inicia la operación y suelta la unidad al terminar.</li>
+      <section
+        className="grid overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:grid-cols-2"
+        data-tour="tour-demo"
+      >
+        <div className="p-6 sm:p-8">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Recorre el ciclo completo
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Usa la cita de muestra para ver cómo fluye una unidad de la puerta al
+            andén.
+          </p>
+          <ol className="mt-6 space-y-5">
+            {steps.map((step, index) => (
+              <li key={step.title} className="flex gap-4">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full border border-border bg-background text-xs font-semibold tabular-nums">
+                  {index + 1}
+                </span>
+                <div>
+                  <p className="text-sm font-medium">{step.title}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{step.body}</p>
+                </div>
+              </li>
+            ))}
           </ol>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-8 flex flex-wrap gap-2">
             {demo ? (
-              <Button render={<Link href={`/portal/${demo.id}`} />} variant="outline">
+              <ButtonLink href={`/portal/${demo.id}`}>
                 Ver pase PT-NORTE1
-              </Button>
+                <ArrowRightIcon data-icon="inline-end" />
+              </ButtonLink>
             ) : (
-              <Button render={<Link href="/portal" />} variant="outline">
+              <ButtonLink href="/portal">
                 Ir al portal
-              </Button>
+                <ArrowRightIcon data-icon="inline-end" />
+              </ButtonLink>
             )}
-            <Button render={<Link href="/caseta" />} variant="outline">
+            <ButtonLink href="/caseta" variant="outline">
               Caseta
-            </Button>
-            <Button render={<Link href="/patio" />} variant="outline">
+            </ButtonLink>
+            <ButtonLink href="/patio" variant="outline">
               Tablero
-            </Button>
+            </ButtonLink>
           </div>
         </div>
-        <LiveUnits yard={yard} />
+        <div className="border-t border-border bg-background/40 p-6 sm:p-8 lg:border-t-0 lg:border-l">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">Unidades en patio</h3>
+            <ButtonLink href="/patio" variant="link" size="sm" className="px-0">
+              Ver tablero
+            </ButtonLink>
+          </div>
+          <LiveUnits yard={yard} />
+        </div>
       </section>
     </div>
   );
 }
 
 function Stat({
+  icon,
   label,
   value,
   hot,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: string;
   hot?: boolean;
 }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={`font-mono text-2xl ${hot ? "text-red-300" : ""}`}>{value}</dd>
+    <div className="bg-card p-5">
+      <dt className="flex items-center gap-2 text-xs text-muted-foreground [&_svg]:size-3.5">
+        {icon}
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          "mt-2 text-2xl font-semibold tracking-tight tabular-nums",
+          hot && "text-red-400",
+        )}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -154,16 +264,17 @@ function RoleCard({
   return (
     <Link
       href={href}
-      className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition hover:ring-primary/40"
+      className="group flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-primary/50"
     >
-      <div className="flex size-9 items-center justify-center rounded-md bg-primary/15 text-primary">
-        {icon}
+      <div className="flex items-center justify-between">
+        <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </span>
+        <ArrowUpRightIcon className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
       </div>
-      <p className="mt-4 text-xs tracking-[0.2em] text-muted-foreground uppercase">
-        {kicker}
-      </p>
-      <h2 className="mt-1 text-lg font-medium">{title}</h2>
-      <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+      <p className="mt-6 text-xs font-medium text-muted-foreground">{kicker}</p>
+      <h3 className="mt-1 text-base font-semibold">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
     </Link>
   );
 }
@@ -175,28 +286,30 @@ function LiveUnits({ yard }: { yard: YardSnapshot | null }) {
 
   if (active.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Patio en calma. Las unidades en sitio se listan aquí.
-      </p>
+      <div className="mt-4 rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+        Patio en calma. Las unidades en sitio aparecerán aquí.
+      </div>
     );
   }
 
   return (
-    <ul className="space-y-2">
-      {active.slice(0, 4).map((appt) => (
-        <li
-          key={appt.id}
-          className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2"
-        >
-          <span>
-            <span className="plate-type block text-sm">
-              {displayPlate(appt.plate)}
+    <ul className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+      {active.slice(0, 5).map((appt) => (
+        <li key={appt.id} className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
+              <TruckIcon className="size-4" />
             </span>
-            <span className="text-xs text-muted-foreground">
-              {appt.dockLabel ?? "En espera"} · {appt.carrier}
-            </span>
+            <div className="min-w-0">
+              <p className="plate-type text-sm">{displayPlate(appt.plate)}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {appt.dockLabel ?? "En espera"} · {appt.carrier}
+              </p>
+            </div>
+          </div>
+          <span className="text-sm">
+            <Dwell from={appt.arrivedAt} warnAfter={90} />
           </span>
-          <Dwell from={appt.arrivedAt} warnAfter={90} />
         </li>
       ))}
     </ul>

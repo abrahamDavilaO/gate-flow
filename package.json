@@ -6,7 +6,8 @@
     "dev": "next dev --port 3847",
     "build": "next build && node scripts/migrate.mjs",
     "start": "next start --port 3847",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pwa:icons": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

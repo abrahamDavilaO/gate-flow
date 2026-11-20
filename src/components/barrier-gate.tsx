@@ -1,9 +1,25 @@
 "use client";
 
+import { cn } from "cn";
+
 export function BarrierGate({ open }: { open: boolean }) {
   return (
-    <div className="relative overflow-hidden rounded-xl bg-zinc-950 ring-1 ring-foreground/10">
-      <div className="flex h-36 items-end justify-center bg-[radial-gradient(circle_at_top,oklch(0.3_0.03_95),transparent_55%)]">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <h2 className="text-sm font-medium">Pluma de acceso</h2>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
+            open
+              ? "bg-emerald-500/10 text-emerald-300"
+              : "bg-red-500/10 text-red-300",
+          )}
+        >
+          <span className="size-1.5 rounded-full bg-current" />
+          {open ? "Abierta" : "Cerrada"}
+        </span>
+      </div>
+      <div className="flex h-36 items-end justify-center bg-[radial-gradient(circle_at_top,oklch(0.26_0.02_260),transparent_60%)]">
         <div className="relative h-28 w-56">
           <div className="absolute bottom-0 left-6 h-24 w-3 rounded-sm bg-zinc-500" />
           <div
@@ -11,18 +27,11 @@ export function BarrierGate({ open }: { open: boolean }) {
             style={{
               transform: open ? "rotate(-78deg)" : "rotate(-8deg)",
               backgroundImage:
-                "repeating-linear-gradient(90deg, oklch(0.84 0.15 85) 0 16px, oklch(0.18 0.02 95) 16px 32px)",
+                "repeating-linear-gradient(90deg, oklch(0.64 0.2 25) 0 16px, oklch(0.95 0 0) 16px 32px)",
             }}
           />
-          <div className="absolute bottom-2 left-2 right-2 h-2 rounded-full bg-zinc-700" />
+          <div className="absolute right-2 bottom-2 left-2 h-1.5 rounded-full bg-zinc-700" />
         </div>
-      </div>
-      <div
-        className={`px-4 py-2 text-center font-mono text-sm tracking-[0.25em] ${
-          open ? "bg-emerald-500/20 text-emerald-200" : "bg-red-500/15 text-red-200"
-        }`}
-      >
-        {open ? "PLUMA ABIERTA" : "PLUMA CERRADA"}
       </div>
     </div>
   );
